@@ -18,6 +18,8 @@ use aes::{
 
 ///We're using AES 128 which has 16-byte (128 bit) blocks.
 const BLOCK_SIZE: usize = 16;
+//We're assuming this is a random number generated
+const IV: [u8; BLOCK_SIZE] = [10u8; BLOCK_SIZE];
 
 fn main() {
 	todo!("Maybe this should be a library crate. TBD");
@@ -158,9 +160,27 @@ fn ecb_decrypt(cipher_text: Vec<u8>, key: [u8; BLOCK_SIZE]) -> Vec<u8> {
 /// very first block because it doesn't have a previous block. Typically this IV
 /// is inserted as the first block of ciphertext.
 fn cbc_encrypt(plain_text: Vec<u8>, key: [u8; BLOCK_SIZE]) -> Vec<u8> {
-	// Remember to generate a random initialization vector for the first block.
+    // Remember to generate a random initialization vector for the first block.´
+    let padded_text = pad(plain_text);
+    let grouped_text = group(padded_text);
 
-	todo!()
+    let mut prev_block = IV;
+
+    let mut cipher_text = Vec::new();
+
+	cipher_text.push(xor_vecs(IV, grouped_text[0]));
+
+    for (i, block) in grouped_text.iter().enumerate().skip(1) {
+        let mut xor_block = [0u8; BLOCK_SIZE];
+
+        let encrypted_block = aes_encrypt(grouped_text[i - 1], &key);
+
+		let xor_block = xor_vecs(*block, encrypted_block);
+
+		cipher_text.push(xor_block);
+    }
+
+    cipher_text
 }
 
 
