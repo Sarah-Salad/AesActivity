@@ -15,6 +15,7 @@ use aes::{
 	cipher::{generic_array::GenericArray, BlockCipher, BlockDecrypt, BlockEncrypt, KeyInit},
 	Aes128,
 };
+use rand::Rng;
 
 ///We're using AES 128 which has 16-byte (128 bit) blocks.
 const BLOCK_SIZE: usize = 16;
@@ -175,20 +176,21 @@ fn xor_vecs(a: [u8; 16], b: [u8; 16]) -> [u8; 16] {
 
 fn cbc_decrypt(cipher_text: Vec<u8>, key: [u8; BLOCK_SIZE]) -> Vec<u8> {
 	
-	let mut decr_block:Vec<[u8; BLOCK_SIZE]> = vec![];
-	let cipher_blocks = group(cipher_text);
-	for cipher_block in cipher_blocks.iter(){
-		decr_block.push(aes_decrypt(*cipher_block, &key));
-	}
+	// let mut decr_block:Vec<[u8; BLOCK_SIZE]> = vec![];
+	// let cipher_blocks = group(cipher_text);
+	// for cipher_block in cipher_blocks.iter(){
+	// 	decr_block.push(aes_decrypt(*cipher_block, &key));
+	// }
 
-	let xored_blocks:Vec<[u8; BLOCK_SIZE]> = vec![];
-	for i in cipher_blocks.len()..0 {
-		let xored = xor_vecs(cipher_blocks[i], cipher_blocks[i-1]);
-		xored_blocks.push(xored);
-	}
-	xored_blocks.push(xor_vecs(cipher_blocks[0], IV));
+	// let xored_blocks:Vec<[u8; BLOCK_SIZE]> = vec![];
+	// for i in cipher_blocks.len()..0 {
+	// 	let xored = xor_vecs(cipher_blocks[i], cipher_blocks[i-1]);
+	// 	xored_blocks.push(xored);
+	// }
+	// xored_blocks.push(xor_vecs(cipher_blocks[0], IV));
 
-	un_pad(un_group(xored_blocks))
+	// un_pad(un_group(xored_blocks))
+    todo!()
 }
 
 /// Another mode which you can implement on your own is counter mode.
@@ -207,9 +209,32 @@ fn cbc_decrypt(cipher_text: Vec<u8>, key: [u8; BLOCK_SIZE]) -> Vec<u8> {
 ///
 /// Once again, you will need to generate a random nonce which is 64 bits long. This should be
 /// inserted as the first block of the ciphertext.
+/// 
+
+fn generate_nonce() -> [u8; 8] {
+    let mut nonce = [0u8; 8];
+    rand::thread_rng().fill(&mut nonce);
+    nonce
+}
+
 fn ctr_encrypt(plain_text: Vec<u8>, key: [u8; BLOCK_SIZE]) -> Vec<u8> {
 	// Remember to generate a random nonce
-	todo!()
+	let nonce = generate_nonce();
+	let padded_data: Vec<u8> = pad(plain_text);
+	let blocks = group(padded_data);
+    let mut ciphertext = Vec::new();
+    // Append the nonce to the beginning of the ciphertext
+    ciphertext.extend_from_slice(&nonce);
+    
+    blocks.iter().enumerate().for_each(|(i, block)| {
+        let mut counter_block = [0u8; BLOCK_SIZE];
+        counter_block[..8].copy_from_slice(&nonce);
+        counter_block[8..].copy_from_slice(&i.to_be_bytes());
+        let encrypted_counter = aes_encrypt(counter_block, &key);
+        let encrypted_block = xor_vecs(encrypted_counter, *block);
+        ciphertext.extend_from_slice(&encrypted_block);
+    });
+    ciphertext
 }
 
 fn ctr_decrypt(cipher_text: Vec<u8>, key: [u8; BLOCK_SIZE]) -> Vec<u8> {
