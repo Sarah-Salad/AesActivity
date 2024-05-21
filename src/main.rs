@@ -16,6 +16,7 @@ use aes::{
 	Aes128,
 };
 use rand::Rng;
+use std::convert::TryInto;
 
 ///We're using AES 128 which has 16-byte (128 bit) blocks.
 const BLOCK_SIZE: usize = 16;
@@ -122,9 +123,14 @@ fn un_pad(mut data: Vec<u8>) -> Vec<u8> {
 /// One good thing about this mode is that it is parallelizable. But to see why it is
 /// insecure look at: https://www.ubiqsecurity.com/wp-content/uploads/2022/02/ECB2.png
 fn ecb_encrypt(plain_text: Vec<u8>, key: [u8; 16]) -> Vec<u8> {
+	//println!("{:?}", plain_text.len());
 	// Pad the data so that it is a multiple of the block size
-	let padded_data = pad(plain_text);
-
+	let mut padded_data = plain_text;
+	if padded_data.len() % BLOCK_SIZE != 0 {
+		padded_data  = pad(padded_data);
+	}
+	
+	println!("{:?}", padded_data.len());
 	// Group the data into blocks
 	let blocks = group(padded_data);
 
@@ -137,7 +143,6 @@ fn ecb_encrypt(plain_text: Vec<u8>, key: [u8; 16]) -> Vec<u8> {
 
 	// Ungroup the data
 	let ciphertext_ungroup = un_group(ciphertext);
-
 	ciphertext_ungroup
 }
 
@@ -202,7 +207,7 @@ fn cbc_decrypt(cipher_text: Vec<u8>, key: [u8; BLOCK_SIZE]) -> Vec<u8> {
 	let cipher_blocks = group(cipher_text);
 	for cipher_block in cipher_blocks.iter(){
 		decr_block.push(aes_decrypt(*cipher_block, &key));
-
+	}
 
 	let mut xored_blocks:Vec<[u8; BLOCK_SIZE]> = vec![];
 	for i in cipher_blocks.len()..0 {
@@ -243,24 +248,52 @@ fn ctr_encrypt(plain_text: Vec<u8>, key: [u8; BLOCK_SIZE]) -> Vec<u8> {
 	// Remember to generate a random nonce
 	let nonce = generate_nonce();
 	let padded_data: Vec<u8> = pad(plain_text);
+	println!("CTR{:?}", padded_data.len());
 	let blocks = group(padded_data);
     let mut ciphertext = Vec::new();
     // Append the nonce to the beginning of the ciphertext
     ciphertext.extend_from_slice(&nonce);
-    
+    println!("CTR{:?}", ciphertext.len());
     blocks.iter().enumerate().for_each(|(i, block)| {
-        let mut counter_block = [0u8; BLOCK_SIZE];
+        let mut counter_block = [0u8; BLOCK_SIZE].to_vec();
         counter_block[..8].copy_from_slice(&nonce);
         counter_block[8..].copy_from_slice(&i.to_be_bytes());
-        let encrypted_counter = aes_encrypt(counter_block, &key);
-        let encrypted_block = xor_vecs(encrypted_counter, *block);
-        ciphertext.extend_from_slice(&encrypted_block);
+		println!("{:?}", counter_block);
+        let encrypted_counter = ecb_encrypt(counter_block, key);
+        let encrypted_block = xor_vecs(vec_to_array(encrypted_counter).unwrap(), *block);
+		ciphertext.extend_from_slice(&encrypted_block);
+		println!("CTR{:?}", ciphertext.len());
     });
+	println!("CTR{:?}", ciphertext.len());
     ciphertext
 }
 
+fn vec_to_array(vec: Vec<u8>) -> Result<[u8; 16], &'static str> {
+	println!("{:?}", vec);
+    if vec.len() != 16 {
+        return Err("The length of the vector is not 16");
+    }
+    let array: [u8; 16] = vec[..].try_into().unwrap();
+    Ok(array)
+}
+
 fn ctr_decrypt(cipher_text: Vec<u8>, key: [u8; BLOCK_SIZE]) -> Vec<u8> {
-	todo!()
+    // Group cipher text into blocks.
+	let nonce = cipher_text[..8].to_vec();
+    let ciphertext_group = group(cipher_text[8..].to_vec());
+    // Prepare the accepting vector.
+    let mut plaintext = Vec::new();
+
+    ciphertext_group.iter().enumerate().for_each(|(i, block)| {
+        let mut counter_block = [0u8; BLOCK_SIZE].to_vec();
+        counter_block[..8].copy_from_slice(&nonce);
+        counter_block[8..].copy_from_slice(&i.to_be_bytes());
+        let encrypted_counter = ecb_encrypt(counter_block, key);
+        let encrypted_block = xor_vecs(vec_to_array(encrypted_counter).unwrap(), *block);
+        plaintext.extend_from_slice(&encrypted_block);
+    });
+	un_pad(plaintext)
+    
 }
 
 #[cfg(test)]
