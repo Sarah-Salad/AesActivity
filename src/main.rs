@@ -163,9 +163,32 @@ fn cbc_encrypt(plain_text: Vec<u8>, key: [u8; BLOCK_SIZE]) -> Vec<u8> {
 	todo!()
 }
 
-fn cbc_decrypt(cipher_text: Vec<u8>, key: [u8; BLOCK_SIZE]) -> Vec<u8> {
-    todo!()
 
+fn xor_vecs(a: [u8; 16], b: [u8; 16]) -> [u8; 16] {
+    let mut result = [0; 16];
+    for i in 0..16 {
+        result[i] = a[i] ^ b[i];
+    }
+    result
+}
+
+
+fn cbc_decrypt(cipher_text: Vec<u8>, key: [u8; BLOCK_SIZE]) -> Vec<u8> {
+	
+	let mut decr_block:Vec<[u8; BLOCK_SIZE]> = vec![];
+	let cipher_blocks = group(cipher_text);
+	for cipher_block in cipher_blocks.iter(){
+		decr_block.push(aes_decrypt(*cipher_block, &key));
+	}
+
+	let xored_blocks:Vec<[u8; BLOCK_SIZE]> = vec![];
+	for i in cipher_blocks.len()..0 {
+		let xored = xor_vecs(cipher_blocks[i], cipher_blocks[i-1]);
+		xored_blocks.push(xored);
+	}
+	xored_blocks.push(xor_vecs(cipher_blocks[0], IV));
+
+	un_pad(un_group(xored_blocks))
 }
 
 /// Another mode which you can implement on your own is counter mode.
