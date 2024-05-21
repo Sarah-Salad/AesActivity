@@ -192,3 +192,36 @@ fn ctr_encrypt(plain_text: Vec<u8>, key: [u8; BLOCK_SIZE]) -> Vec<u8> {
 fn ctr_decrypt(cipher_text: Vec<u8>, key: [u8; BLOCK_SIZE]) -> Vec<u8> {
 	todo!()
 }
+
+#[cfg(test)]
+mod tests {
+	#[test]
+	fn test_ecb_encrypt_decrypt() {
+		let key = [0u8; 16];
+		let plain_text = b"Hello, PBA!".to_vec();
+		let cipher_text = super::ecb_encrypt(plain_text.clone(), key);
+		let decrypted_text = super::ecb_decrypt(cipher_text, key);
+
+		assert_eq!(plain_text, decrypted_text);
+	}
+
+	#[test]
+	fn test_cbc_encrypt_decrypt() {
+		let key = [0u8; 16];
+		let plain_text = b"Hello, PBA!".to_vec();
+		let cipher_text = super::cbc_encrypt(plain_text.clone(), key);
+		let decrypted_text = super::cbc_decrypt(cipher_text, key);
+
+		assert_eq!(plain_text, decrypted_text);
+	}
+
+	#[test]
+	fn test_ctr_encrypt_decrypt() {
+		let key = [0u8; 16];
+		let plain_text = b"Hello, PBA!".to_vec();
+		let cipher_text = super::ctr_encrypt(plain_text.clone(), key);
+		let decrypted_text = super::ctr_decrypt(cipher_text, key);
+
+		assert_eq!(plain_text, decrypted_text);
+	}
+}
