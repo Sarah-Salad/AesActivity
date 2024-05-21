@@ -121,23 +121,23 @@ fn un_pad(mut data: Vec<u8>) -> Vec<u8> {
 /// One good thing about this mode is that it is parallelizable. But to see why it is
 /// insecure look at: https://www.ubiqsecurity.com/wp-content/uploads/2022/02/ECB2.png
 fn ecb_encrypt(plain_text: Vec<u8>, key: [u8; 16]) -> Vec<u8> {
-    // Pad the data so that it is a multiple of the block size
-    let padded_data = pad(plain_text);
+	// Pad the data so that it is a multiple of the block size
+	let padded_data = pad(plain_text);
 
-    // Group the data into blocks
-    let blocks = group(padded_data);
+	// Group the data into blocks
+	let blocks = group(padded_data);
 
-    // Encrypt each block
-    let mut ciphertext = Vec::new();
-    for block in blocks {
-        let encrypted_block = aes_encrypt(block, &key);
-        ciphertext.push(encrypted_block);
-    }
+	// Encrypt each block
+	let mut ciphertext = Vec::new();
+	for block in blocks {
+		let encrypted_block = aes_encrypt(block, &key);
+		ciphertext.push(encrypted_block);
+	}
 
-    // Ungroup the data
-    let ciphertext_ungroup = un_group(ciphertext);
+	// Ungroup the data
+	let ciphertext_ungroup = un_group(ciphertext);
 
-    ciphertext_ungroup
+	ciphertext_ungroup
 }
 
 /// Opposite of ecb_encrypt.
@@ -180,7 +180,9 @@ fn cbc_encrypt(plain_text: Vec<u8>, key: [u8; BLOCK_SIZE]) -> Vec<u8> {
 		cipher_text.push(xor_block);
     }
 
-    cipher_text
+	let ciphertext_ungroup = un_group(cipher_text);
+
+    ciphertext_ungroup
 }
 
 
@@ -201,12 +203,12 @@ fn cbc_decrypt(cipher_text: Vec<u8>, key: [u8; BLOCK_SIZE]) -> Vec<u8> {
 		decr_block.push(aes_decrypt(*cipher_block, &key));
 	}
 
-	let mut xored_blocks:Vec<[u8; BLOCK_SIZE]> = vec![];
+	let xored_blocks:Vec<[u8; BLOCK_SIZE]> = vec![];
 	for i in cipher_blocks.len()..0 {
-		let xored = xor_vecs(decr_block[i], cipher_blocks[i-1]);
+		let xored = xor_vecs(cipher_blocks[i], cipher_blocks[i-1]);
 		xored_blocks.push(xored);
 	}
-	xored_blocks.push(xor_vecs(decr_block[0], IV));
+	xored_blocks.push(xor_vecs(cipher_blocks[0], IV));
 
 	un_pad(un_group(xored_blocks))
 }
