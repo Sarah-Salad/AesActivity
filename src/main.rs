@@ -201,7 +201,7 @@ fn cbc_decrypt(cipher_text: Vec<u8>, key: [u8; BLOCK_SIZE]) -> Vec<u8> {
 		decr_block.push(aes_decrypt(*cipher_block, &key));
 	}
 
-	let xored_blocks:Vec<[u8; BLOCK_SIZE]> = vec![];
+	let mut xored_blocks:Vec<[u8; BLOCK_SIZE]> = vec![];
 	for i in cipher_blocks.len()..0 {
 		let xored = xor_vecs(decr_block[i], cipher_blocks[i-1]);
 		xored_blocks.push(xored);
