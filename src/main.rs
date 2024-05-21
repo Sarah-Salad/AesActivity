@@ -124,7 +124,9 @@ fn ecb_encrypt(plain_text: Vec<u8>, key: [u8; 16]) -> Vec<u8> {
 
 /// Opposite of ecb_encrypt.
 fn ecb_decrypt(cipher_text: Vec<u8>, key: [u8; BLOCK_SIZE]) -> Vec<u8> {
-	todo!()
+    let ecb_group: Vec<[u8; BLOCK_SIZE]> = group(cipher_text);
+    let decrypted_blocks : Vec<[u8; BLOCK_SIZE]> = ecb_group.into_iter().map(|block| aes_decrypt(block, &key)).collect();
+    un_pad(un_group(decrypted_blocks))
 }
 
 /// The next mode, which you can implement on your own is cipherblock chaining.
@@ -146,7 +148,8 @@ fn cbc_encrypt(plain_text: Vec<u8>, key: [u8; BLOCK_SIZE]) -> Vec<u8> {
 }
 
 fn cbc_decrypt(cipher_text: Vec<u8>, key: [u8; BLOCK_SIZE]) -> Vec<u8> {
-	todo!()
+    todo!()
+
 }
 
 /// Another mode which you can implement on your own is counter mode.
