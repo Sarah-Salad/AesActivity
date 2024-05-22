@@ -179,9 +179,9 @@ fn cbc_encrypt(plain_text: Vec<u8>, key: [u8; BLOCK_SIZE]) -> Vec<u8> {
     for (i, block) in grouped_text.iter().enumerate().skip(1) {
         let mut xor_block = [0u8; BLOCK_SIZE];
 
-        let encrypted_block = aes_encrypt(grouped_text[i - 1], &key);
+		let xor_block = xor_vecs(cipher_text[i-1], grouped_text[i]);
 
-		let xor_block = xor_vecs(*block, encrypted_block);
+        let encrypted_block = aes_encrypt(xor_block, &key);
 
 		cipher_text.push(xor_block);
     }
@@ -210,13 +210,20 @@ fn cbc_decrypt(cipher_text: Vec<u8>, key: [u8; BLOCK_SIZE]) -> Vec<u8> {
 	}
 
 	let mut xored_blocks:Vec<[u8; BLOCK_SIZE]> = vec![];
-	for i in cipher_blocks.len()..0 {
+	
+    for (i, value) in cipher_blocks.iter().enumerate().rev() {
+        if i  == 0 {
+            break;
+        }
 		let xored = xor_vecs(cipher_blocks[i], cipher_blocks[i-1]);
 		xored_blocks.push(xored);
 	}
 	xored_blocks.push(xor_vecs(cipher_blocks[0], IV));
 
-	un_pad(un_group(xored_blocks))
+    let mut reversed_blocks = xored_blocks.clone();
+    reversed_blocks.reverse();
+    let data = un_group(reversed_blocks);
+	un_pad(data)
 
 }
 
